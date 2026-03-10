@@ -19,6 +19,12 @@ export class MarginConfigsService {
     private readonly marginConfigsRepository: MarginConfigsRepository,
   ) {}
 
+  /**
+   * @description Find margin configs by plant id.
+   * @param plantId - The id of the plant.
+   * @param pagination - The pagination arguments.
+   * @returns The margin configs paginated.
+   */
   public async findByPlantId(plantId: number, pagination: PaginationArgs) {
     const { page, perPage } = pagination
     this.logger.debug('Finding margin configs by plantId', {
@@ -43,6 +49,12 @@ export class MarginConfigsService {
     )
   }
 
+  /**
+   * @description Find margin configs by plant and client type.
+   * @param plantId - The id of the plant.
+   * @param clientTypeId - The id of the client type.
+   * @returns The margin configs.
+   */
   public async findByPlantAndClientType(plantId: number, clientTypeId: number) {
     this.logger.debug('Finding margin configs by plant and clientType', {
       plantId,
@@ -58,6 +70,12 @@ export class MarginConfigsService {
     )
   }
 
+  /**
+   * @description Find margin configs by plant and client.
+   * @param plantId - The id of the plant.
+   * @param clientId - The id of the client.
+   * @returns The margin configs.
+   */
   public async findByPlantAndClient(plantId: number, clientId: number) {
     this.logger.debug('Finding margin configs by plant and client', {
       plantId,
@@ -73,6 +91,11 @@ export class MarginConfigsService {
     )
   }
 
+  /**
+   * @description Upsert a margin config.
+   * @param input - The input to upsert the margin config.
+   * @returns The upserted margin config.
+   */
   public async upsert(input: UpsertMarginInput) {
     this.logger.debug('Upserting margin config', { plantId: input.plantId })
     const marginConfig = await this.marginConfigsRepository.upsert(input)
@@ -82,6 +105,11 @@ export class MarginConfigsService {
     )
   }
 
+  /**
+   * @description Save a plant config.
+   * @param input - The input to save the plant config.
+   * @returns The saved plant config.
+   */
   public async savePlantConfig(input: SavePlantConfigInput) {
     this.logger.debug('Saving plant config', {
       plantId: input.plantId,
@@ -94,6 +122,11 @@ export class MarginConfigsService {
     return PayloadBuilder.success('Plant config saved successfully', count)
   }
 
+  /**
+   * @description Remove a margin config.
+   * @param id - The id of the margin config.
+   * @returns The removed margin config.
+   */
   public async remove(id: number) {
     this.logger.debug('Removing margin config', { id })
 

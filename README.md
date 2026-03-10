@@ -1,16 +1,17 @@
-# Quotation Configuration API
+# Quotation Configuration System
 
-Backend GraphQL para el módulo de **Configuración de Cotización**. Permite definir y gestionar márgenes de ganancia por planta, tipo de cliente y rango de volumen, exponiendo una API GraphQL consumible desde cualquier frontend.
+Sistema completo de **Configuración de Cotización** con backend GraphQL (NestJS) y frontend administrativo (Next.js). Permite definir y gestionar márgenes de ganancia por planta, tipo de cliente y rango de volumen, con una interfaz moderna y responsive.
 
 ---
 
-## Tabla de contenidos
+## 📋 Tabla de contenidos
 
 - [Descripción general](#descripción-general)
 - [Stack tecnológico](#stack-tecnológico)
 - [Arquitectura del proyecto](#arquitectura-del-proyecto)
 - [Modelo de base de datos](#modelo-de-base-de-datos)
 - [API GraphQL](#api-graphql)
+- [Frontend](#frontend)
 - [Requisitos previos](#requisitos-previos)
 - [Variables de entorno](#variables-de-entorno)
 - [Instalación y ejecución](#instalación-y-ejecución)
@@ -18,6 +19,7 @@ Backend GraphQL para el módulo de **Configuración de Cotización**. Permite de
 - [Tests](#tests)
 - [CI/CD](#cicd)
 - [Estructura de carpetas](#estructura-de-carpetas)
+- [Características destacadas](#características-destacadas)
 
 ---
 
@@ -25,15 +27,20 @@ Backend GraphQL para el módulo de **Configuración de Cotización**. Permite de
 
 El sistema permite:
 
-- Gestionar **plantas** (sedes) donde se realizan operaciones
-- Definir **tipos de cliente** con precio base y estrategia de precios
-- Registrar **clientes** individuales vinculados a un tipo
-- Configurar **márgenes de ganancia** por planta, rango de volumen y opcionalmente por tipo de cliente o cliente específico
-- Cada configuración de margen soporta 8 rangos de volumen: `300 kg`, `500 kg`, `1T`, `3T`, `5T`, `10T`, `20T`, `30T`
+- 🏭 Gestionar **plantas** (sedes) donde se realizan operaciones
+- 👥 Definir **tipos de cliente** con precio base y estrategia de precios
+- 📋 Registrar **clientes** individuales vinculados a un tipo (o sin tipo)
+- 💰 Configurar **márgenes de ganancia** por planta, rango de volumen y opcionalmente por tipo de cliente o cliente específico
+- 📊 Cada configuración de margen soporta 8 rangos de volumen: `300 kg`, `500 kg`, `1T`, `3T`, `5T`, `10T`, `20T`, `30T`
+- ⚠️ Alertas visuales para márgenes críticos (≤ 5%)
+- 🔄 Caché inteligente para cambios de planta
+- 📱 Interfaz responsive (mobile, tablet, desktop)
 
 ---
 
 ## Stack tecnológico
+
+### Backend
 
 | Capa | Tecnología |
 |------|-----------|
@@ -44,6 +51,20 @@ El sistema permite:
 | Base de datos | PostgreSQL 16 |
 | Validación | class-validator + class-transformer |
 | Testing | Jest + @nestjs/testing |
+| Runtime | Node.js 22 |
+| Package manager | pnpm |
+
+### Frontend
+
+| Capa | Tecnología |
+|------|-----------|
+| Framework | [Next.js v15](https://nextjs.org/) (App Router) |
+| Lenguaje | TypeScript 5 (strict mode) |
+| GraphQL Client | [Apollo Client v4](https://www.apollographql.com/docs/react/) |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
+| Components | [Shadcn/ui](https://ui.shadcn.com/) |
+| Notifications | [Sonner](https://sonner.emilkowal.ski/) |
+| Validación | Zod |
 | Runtime | Node.js 22 |
 | Package manager | pnpm |
 
@@ -336,6 +357,68 @@ mutation {
 
 ---
 
+## Frontend
+
+### Descripción
+
+Interfaz administrativa moderna y responsive construida con Next.js 15 y Apollo Client. Permite gestionar la configuración de márgenes de forma visual e intuitiva.
+
+### Características principales
+
+- **📊 Tabla editable agrupada por tipo de cliente**
+  - Filas expandibles/colapsables
+  - Edición inline de márgenes con validación en tiempo real
+  - Alertas visuales para márgenes críticos (≤ 5%)
+  
+- **🔄 Gestión de clientes**
+  - Crear nuevos clientes con asignación de tipo
+  - Editar clientes existentes (nombre, tipo, precio base, vinculación)
+  - Soporte para clientes "Sin tipo de cliente"
+  - Modales modernos con validación Zod
+
+- **💾 Sistema de guardado inteligente**
+  - Botón sticky siempre visible
+  - Badge "Sin guardar" cuando hay cambios pendientes
+  - Toasts informativos (éxito/error)
+  - Solo envía cambios modificados (optimización)
+  - Sin skeleton al actualizar (UX fluida)
+
+- **🚀 Optimizaciones de performance**
+  - Cache-first de Apollo Client
+  - Refetch automático solo después de guardar
+  - Cambio de planta instantáneo (usa caché)
+  - Estado derivado con `useMemo`
+  - Hooks modulares y reutilizables
+
+- **📱 Diseño responsive**
+  - Mobile-first
+  - Sticky columns para scroll horizontal
+  - Header fijo con botón de guardar
+  - Adaptable a tablet y desktop
+
+### Variables de entorno (Frontend)
+
+```bash
+NEXT_PUBLIC_GRAPHQL_URL=http://localhost:4000/api-v1/graphql
+```
+
+### Ejecutar el frontend
+
+```bash
+# Desde la carpeta del frontend
+cd laik-tech-frontend
+
+# Instalar dependencias
+pnpm install
+
+# Iniciar en modo desarrollo
+pnpm dev
+```
+
+El frontend estará disponible en: **http://localhost:3000**
+
+---
+
 ## Requisitos previos
 
 - **Node.js** >= 22 — [descargar](https://nodejs.org/)
@@ -606,3 +689,49 @@ laik-tech/
 - **Paginación reutilizable**: `PaginationArgs` (input) y `PaginatedResponseBase` (output) en `common/`
 - **Enums GraphQL**: registrados con `registerEnumType` para aparecer en el schema
 - **Validación automática**: `ValidationPipe` global con `whitelist: true` y `transform: true`
+
+---
+
+## Características destacadas
+
+### Backend
+
+✅ **Repository Pattern** — Desacoplamiento total entre lógica de negocio y base de datos  
+✅ **Prisma ORM** — Type-safe database access con migraciones automáticas  
+✅ **GraphQL Code First** — Schema generado desde TypeScript decorators  
+✅ **Validación robusta** — DTOs con class-validator para todos los inputs  
+✅ **Tests unitarios** — 62 tests con 100% de éxito (service + resolver)  
+✅ **CI/CD completo** — Lint, Build, Test y Docker build automatizados  
+✅ **Multi-stage Docker** — Imagen optimizada para producción  
+✅ **Seeding inteligente** — Datos de prueba realistas para desarrollo  
+
+### Frontend
+
+✅ **Next.js 15 App Router** — Server Components + Client Components estratégicos  
+✅ **Apollo Client v4** — Cache inteligente con fetchPolicy: 'cache-first'  
+✅ **Arquitectura modular** — Separación por features (modules/) y shared/  
+✅ **Hooks personalizados** — Lógica reutilizable y testeable  
+✅ **TypeScript estricto** — Tipos end-to-end desde GraphQL hasta UI  
+✅ **Shadcn/ui** — Componentes accesibles y customizables  
+✅ **Optimistic UI** — Guardado sin skeleton, UX fluida  
+✅ **Responsive design** — Mobile-first, sticky elements, scroll horizontal
+
+### Arquitectura
+
+✅ **Monorepo conceptual** — Backend y Frontend separados pero cohesionados  
+✅ **Type-safety end-to-end** — GraphQL schema → TypeScript types → UI  
+✅ **Clientless DB models** — Soporte para clientes sin tipo asignado  
+✅ **Upsert transactions** — Manejo correcto de unique constraints con nullables  
+✅ **Error handling** — Toasts informativos y logs de debugging  
+
+---
+
+## Licencia
+
+MIT
+
+---
+
+## Autor
+
+Desarrollado como assessment técnico para Laik Tech

@@ -22,6 +22,11 @@ export class PlantsService {
     private readonly plantsRepository: PlantsRepository,
   ) {}
 
+  /**
+   * @description Find all plants.
+   * @param pagination - The pagination arguments.
+   * @returns The plants paginated.
+   */
   public async findAll(pagination: PaginationArgs) {
     const { page, perPage } = pagination
     this.logger.debug('Finding all plants', { page, perPage })
@@ -43,6 +48,11 @@ export class PlantsService {
     )
   }
 
+  /**
+   * @description Find a plant by id.
+   * @param id - The id of the plant.
+   * @returns The plant.
+   */
   public async findById(id: number) {
     this.logger.debug('Finding plant by id', { id })
     const plant = await this.plantsRepository.findById(id)
@@ -50,6 +60,11 @@ export class PlantsService {
     return PayloadBuilder.success('Plant retrieved successfully', plant)
   }
 
+  /**
+   * @description Create a plant.
+   * @param input - The input to create the plant.
+   * @returns The created plant.
+   */
   public async create(input: CreatePlantInput) {
     const { name } = input
     this.logger.debug('Creating plant', { name })
@@ -62,6 +77,11 @@ export class PlantsService {
     return PayloadBuilder.success('Plant created successfully', plant)
   }
 
+  /**
+   * @description Update a plant.
+   * @param input - The input to update the plant.
+   * @returns The updated plant.
+   */
   public async update(input: UpdatePlantInput) {
     const { id, name } = input
     this.logger.debug('Updating plant', { id, name })
@@ -73,6 +93,11 @@ export class PlantsService {
     return PayloadBuilder.success('Plant updated successfully', plant)
   }
 
+  /**
+   * @description Remove a plant.
+   * @param id - The id of the plant.
+   * @returns The removed plant.
+   */
   public async remove(id: number) {
     this.logger.debug('Removing plant', { id })
 
