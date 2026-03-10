@@ -96,15 +96,17 @@ Tipo de cliente con precio base y estrategia de precios.
 | `pricingStrategy` | String | `POR_ESTRUCTURA` o `NO_VINCULAR` |
 
 ### `Client`
-Cliente individual vinculado a un tipo de cliente.
+Cliente individual. Puede estar vinculado a un tipo de cliente o existir sin clasificar.
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `id` | Int | Identificador único |
 | `name` | String | Nombre del cliente |
-| `clientTypeId` | Int | Referencia a `ClientType` |
+| `clientTypeId` | Int? | Referencia a `ClientType` (nullable — ver nota) |
 | `basePrice` | Float? | Precio base propio (sobreescribe el del tipo) |
 | `pricingStrategy` | String? | Estrategia propia (sobreescribe la del tipo) |
+
+> **Nota — "Sin tipo de cliente"**: `clientTypeId` es opcional. Un cliente sin tipo aparece en la sección **"Sin tipo de cliente"** del frontend. Esto ocurre cuando el cliente se crea sin asignar tipo, o cuando el tipo de cliente al que pertenecía se elimina (el campo se pone en `null` automáticamente gracias a `onDelete: SetNull`).
 
 ### `MarginConfig`
 Configuración de margen para una combinación planta + volumen + cliente/tipo.
@@ -336,23 +338,17 @@ mutation {
 
 ## Requisitos previos
 
-- **Node.js** >= 22
-- **pnpm** >= 9
-- **PostgreSQL** >= 14 (o usar Docker)
+- **Node.js** >= 22 — [descargar](https://nodejs.org/)
+- **pnpm** >= 9 — `npm install -g pnpm`
+- **Docker** — para levantar PostgreSQL fácilmente
 
 ---
 
 ## Variables de entorno
 
-Crea un archivo `.env` en la raíz del proyecto copiando el ejemplo:
-
-```bash
-cp .env.example .env
-```
-
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://user:pass@localhost:5432/laik_tech` |
+| Variable | Descripción | Valor por defecto |
+|----------|-------------|-------------------|
+| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://postgres:postgres@localhost:5432/laik_tech` |
 | `PORT` | Puerto donde corre la API | `4000` |
 | `NODE_ENV` | Entorno de ejecución | `development` |
 | `GRAPHQL_PLAYGROUND` | Habilita Apollo Sandbox | `true` |
@@ -363,70 +359,117 @@ cp .env.example .env
 
 ## Instalación y ejecución
 
-### 1. Instalar dependencias
+### Primera vez (setup completo)
+
+Sigue estos pasos en orden:
+
+**1. Clonar e instalar dependencias**
 
 ```bash
+git clone <repo-url> laik-tech
+cd laik-tech
 pnpm install
 ```
 
-### 2. Configurar variables de entorno
+**2. Configurar variables de entorno**
 
 ```bash
 cp .env.example .env
-# Edita .env con tus credenciales de PostgreSQL
 ```
 
-### 3. Ejecutar migraciones de base de datos
+El archivo `.env` ya tiene los valores correctos para desarrollo local con Docker. No necesitas editarlo si usas el paso siguiente.
+
+**3. Levantar PostgreSQL con Docker**
 
 ```bash
-# Crear las tablas en la base de datos
-pnpm prisma migrate dev
-
-# (Opcional) Poblar la base de datos con datos de prueba
-pnpm prisma db seed
+docker compose up -d db
 ```
 
-### 4. Iniciar el servidor
+Esto inicia PostgreSQL en `localhost:5432` en segundo plano. Verifica que está listo:
 
 ```bash
-# Modo desarrollo (hot reload)
+docker compose ps   # debe mostrar "healthy" en la columna STATUS
+```
+
+**4. Crear tablas en la base de datos**
+
+```bash
+npx prisma migrate deploy
+```
+
+**5. Cargar datos de prueba (seed)**
+
+```bash
+npx prisma db seed
+```
+
+Esto inserta:
+- **3 plantas**: Planta Monterrey, Guadalajara y CDMX
+- **4 tipos de cliente**: Industrial, Comercial, Gobierno, Distribuidor
+- **15 clientes**: 12 con tipo asignado + 3 sin tipo (sección "Sin tipo de cliente")
+- **216 configuraciones de margen**: combinando todas las plantas, tipos y rangos de volumen, con algunos márgenes críticos (≤ 5%) para probar las alertas visuales del frontend
+
+**6. Iniciar el servidor**
+
+```bash
 pnpm start:dev
-
-# Modo producción
-pnpm build && pnpm start:prod
 ```
 
-La API estará disponible en: `http://localhost:4000/api-v1/graphql`
+La API estará disponible en: **http://localhost:4000/api-v1/graphql**
+
+---
+
+### Ejecución en días siguientes
+
+Con el setup ya hecho, simplemente:
+
+```bash
+# En una terminal: levantar la DB (si no está corriendo)
+docker compose up -d db
+
+# En otra terminal: iniciar la API
+pnpm start:dev
+```
+
+---
+
+### Re-sembrar la base de datos
+
+Si quieres restablecer los datos a su estado inicial:
+
+```bash
+npx prisma db seed
+```
+
+> El seed borra y recrea todos los clientes y márgenes, pero respeta las plantas y tipos de cliente (upsert).
+
+Para limpiar todo desde cero (incluyendo las tablas):
+
+```bash
+docker compose down -v          # elimina el volumen de PostgreSQL
+docker compose up -d db         # reinicia la DB vacía
+npx prisma migrate deploy       # recrea las tablas
+npx prisma db seed              # carga los datos de prueba
+```
 
 ---
 
 ## Docker
 
-### Desarrollo local con Docker Compose
-
-Levanta la API y PostgreSQL con un solo comando:
+### Solo la base de datos (recomendado para desarrollo)
 
 ```bash
-docker compose up
+# Iniciar
+docker compose up -d db
+
+# Detener (conserva los datos)
+docker compose stop db
+
+# Detener y borrar datos
+docker compose down -v
 ```
 
-Esto inicia:
-- **API** en `http://localhost:4000`
-- **PostgreSQL** en `localhost:5432`
-
-Para correr en background:
-
-```bash
-docker compose up -d
-```
-
-Para detener y limpiar:
-
-```bash
-docker compose down -v   # -v elimina el volumen de PostgreSQL
-```
-
-### Build de imagen de producción
+### Producción — Build de imagen
 
 ```bash
 docker build --target production -t laik-tech-api .
@@ -511,7 +554,10 @@ laik-tech/
 │       └── cd.yml              # Docker build + push
 │
 ├── prisma/
-│   └── schema.prisma           # Modelos y enums de base de datos
+│   ├── schema.prisma           # Modelos y enums de base de datos
+│   ├── seed.ts                 # Datos de prueba (plants, types, clients, margins)
+│   ├── tsconfig.seed.json      # Config TS exclusiva para el seed
+│   └── migrations/             # Historial de migraciones SQL (auto-generado)
 │
 ├── src/
 │   ├── main.ts                 # Entry point

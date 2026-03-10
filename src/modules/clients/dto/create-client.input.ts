@@ -17,9 +17,10 @@ export class CreateClientInput {
   @IsNotEmpty()
   name: string
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
   @IsInt()
-  clientTypeId: number
+  clientTypeId?: number | null
 
   @Field(() => Float, { nullable: true })
   @IsOptional()

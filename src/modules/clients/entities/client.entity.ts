@@ -10,8 +10,8 @@ export class Client {
   @Field()
   name: string
 
-  @Field(() => Int)
-  clientTypeId: number
+  @Field(() => Int, { nullable: true })
+  clientTypeId: number | null
 
   @Field(() => Float, { nullable: true })
   basePrice?: number | null

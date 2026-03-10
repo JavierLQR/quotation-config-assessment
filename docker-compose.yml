@@ -1,25 +1,26 @@
 services:
-  api:
-    build:
-      context: .
-      target: builder
-    container_name: laik-tech-api
-    ports:
-      - '4000:4000'
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/laik_tech
-      PORT: 4000
-      GRAPHQL_PLAYGROUND: 'true'
-      GRAPHQL_DEBUG: 'true'
-    volumes:
-      - ./src:/app/src
-    command: sh -c "npx prisma migrate deploy && pnpm start:dev"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - laik-network
+  # api:
+  #   build:
+  #     context: .
+  #     target: builder
+  #   container_name: laik-tech-api
+  #   ports:
+  #     - '4000:4000'
+  #   environment:
+  #     NODE_ENV: development
+  #     DATABASE_URL: postgresql://postgres:postgres@db:5432/laik_tech
+  #     PORT: 4000
+  #     GRAPHQL_PLAYGROUND: 'true'
+  #     GRAPHQL_DEBUG: 'true'
+  #   volumes:
+  #     - ./src:/app/src
+  #     - ./prisma:/app/prisma
+  #   command: sh -c "npx prisma generate && npx prisma migrate deploy && npx prisma db seed && pnpm start:dev"
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   networks:
+  #     - laik-network
 
   db:
     image: postgres:16-alpine

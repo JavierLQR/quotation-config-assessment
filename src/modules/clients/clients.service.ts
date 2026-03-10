@@ -65,7 +65,7 @@ export class ClientsService {
   }
 
   public async update(input: UpdateClientInput) {
-    const { id, name, basePrice, pricingStrategy } = input
+    const { id, name, clientTypeId, basePrice, pricingStrategy } = input
     this.logger.debug('Updating client', { id })
 
     const existing = await this.clientsRepository.findById(id)
@@ -73,6 +73,7 @@ export class ClientsService {
 
     const client = await this.clientsRepository.update(id, {
       name,
+      clientTypeId,
       basePrice,
       pricingStrategy,
     })

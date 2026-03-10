@@ -29,8 +29,8 @@ model ClientType {
 model Client {
   id              Int            @id @default(autoincrement())
   name            String
-  clientType      ClientType     @relation(fields: [clientTypeId], references: [id], onDelete: Cascade)
-  clientTypeId    Int
+  clientType      ClientType?    @relation(fields: [clientTypeId], references: [id], onDelete: SetNull)
+  clientTypeId    Int?
   basePrice       Float?
   pricingStrategy String?
   createdAt       DateTime       @default(now())

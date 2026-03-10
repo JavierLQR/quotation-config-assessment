@@ -22,6 +22,11 @@ export class UpdateClientInput {
   @IsNotEmpty()
   name?: string
 
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  clientTypeId?: number | null
+
   @Field(() => Float, { nullable: true })
   @IsOptional()
   @IsNumber()

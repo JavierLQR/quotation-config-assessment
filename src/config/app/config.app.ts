@@ -9,6 +9,7 @@ export const ConfigApp = async (app: INestApplication) => {
   const logger: Logger = new Logger('ConfigApp')
 
   const isProd = process.env.NODE_ENV === 'production'
+  const allowedOrigin = isProd ? '' : 'http://localhost:3000'
 
   const expressApp = app
     .getHttpAdapter()
@@ -16,25 +17,44 @@ export const ConfigApp = async (app: INestApplication) => {
 
   expressApp.set('trust proxy', 1)
 
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin
+
+    if (!isProd && origin === allowedOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', origin)
+      res.setHeader('Access-Control-Allow-Credentials', 'true')
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET,POST,PUT,DELETE,PATCH,OPTIONS',
+      )
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type,Authorization,apollo-require-preflight',
+      )
+    }
+
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204
+      res.end()
+      return
+    }
+
+    next()
+  })
+
   app.use(cookieParser())
 
   app.use(
     helmet({
       contentSecurityPolicy: isProd ? undefined : false,
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: false,
     }),
   )
 
   app.use((_: Request, res: Response, next: NextFunction) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow')
     next()
-  })
-
-  app.enableCors({
-    origin: isProd ? [''] : 'http://localhost:3000',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
   })
 
   app.useLogger(
