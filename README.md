@@ -394,7 +394,7 @@ docker compose ps   # debe mostrar "healthy" en la columna STATUS
 **4. Crear tablas en la base de datos**
 
 ```bash
-npx prisma migrate deploy
+npx prisma migrate dev
 ```
 
 **5. Cargar datos de prueba (seed)**
@@ -448,7 +448,7 @@ Para limpiar todo desde cero (incluyendo las tablas):
 ```bash
 docker compose down -v          # elimina el volumen de PostgreSQL
 docker compose up -d db         # reinicia la DB vacía
-npx prisma migrate deploy       # recrea las tablas
+npx prisma migrate dev          # recrea las tablas
 npx prisma db seed              # carga los datos de prueba
 ```
 
