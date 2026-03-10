@@ -98,7 +98,7 @@ pnpm start:dev
 
 **El frontend está en un repositorio separado:** `quotation-config-assessment-frontend`
 
-Ver: [Frontend README](../laik-tech-frontend/README.md) para la ubicación de los componentes React.
+Ver: [Frontend README](https://github.com/JavierLQR/quotation-config-assessment-frontend#-ubicación-de-entregables-frontend) para la ubicación de los componentes React.
 
 ---
 
