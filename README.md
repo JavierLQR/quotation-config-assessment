@@ -4,8 +4,107 @@ Sistema completo de **Configuración de Cotización** con backend GraphQL (NestJ
 
 ---
 
+## 📦 Ubicación de Entregables (Backend)
+
+Para facilitar la revisión, aquí están las ubicaciones exactas de cada entregable solicitado:
+
+### 1️⃣ Modelo de DB en Prisma (`schema.prisma`)
+
+**Ubicación:** [`prisma/schema.prisma`](./prisma/schema.prisma)
+
+**Qué encontrarás:**
+- Modelos: `Plant`, `ClientType`, `Client`, `MarginConfig`
+- Enum: `VolumeRange` (8 rangos de volumen)
+- Relaciones y constraints (unique, cascadas, nullable)
+- Documentación inline de cada modelo
+
+**Ver también:**
+- Migraciones SQL: [`prisma/migrations/`](./prisma/migrations/)
+- Seed data: [`prisma/seed.ts`](./prisma/seed.ts)
+
+---
+
+### 2️⃣ Schema GraphQL + Resolvers
+
+**Este proyecto usa GraphQL Code First**, el schema se genera automáticamente desde decorators TypeScript.
+
+**Ubicaciones de los Resolvers:**
+
+| Módulo | Resolver | Entities | DTOs |
+|--------|----------|----------|------|
+| **Plants** | [`src/modules/plants/plants.resolver.ts`](./src/modules/plants/plants.resolver.ts) | [`entities/plant.entity.ts`](./src/modules/plants/entities/plant.entity.ts) | [`dto/`](./src/modules/plants/dto/) |
+| **Client Types** | [`src/modules/client-types/client-types.resolver.ts`](./src/modules/client-types/client-types.resolver.ts) | [`entities/client-type.entity.ts`](./src/modules/client-types/entities/client-type.entity.ts) | [`dto/`](./src/modules/client-types/dto/) |
+| **Clients** | [`src/modules/clients/clients.resolver.ts`](./src/modules/clients/clients.resolver.ts) | [`entities/client.entity.ts`](./src/modules/clients/entities/client.entity.ts) | [`dto/`](./src/modules/clients/dto/) |
+| **Margin Configs** | [`src/modules/margin-configs/margin-configs.resolver.ts`](./src/modules/margin-configs/margin-configs.resolver.ts) | [`entities/margin-config.entity.ts`](./src/modules/margin-configs/entities/margin-config.entity.ts) | [`dto/`](./src/modules/margin-configs/dto/) |
+
+**Schema GraphQL generado:**
+- Después de `pnpm build`, se puede visualizar en Apollo Playground: `http://localhost:4000/api-v1/graphql`
+- Introspección disponible en el playground para ver todos los types, queries y mutations
+
+**Queries principales:**
+```graphql
+plants(pagination: PaginationArgs)
+clientTypes(pagination: PaginationArgs)
+clients(pagination: PaginationArgs)
+marginsByPlant(plantId: ID!)
+```
+
+**Mutations principales:**
+```graphql
+createPlant(input: CreatePlantInput!)
+createClient(input: CreateClientInput!)
+updateClient(input: UpdateClientInput!)
+savePlantConfig(input: SavePlantConfigInput!)  # ← Guarda todos los márgenes de una planta
+```
+
+---
+
+### 3️⃣ Instrucciones para Correr el Proyecto (Backend)
+
+**README completo:** [`README.md`](./README.md) (este archivo)
+
+**Quick Start:**
+
+```bash
+# 1. Levantar PostgreSQL con Docker
+docker compose up -d db
+
+# 2. Instalar dependencias
+pnpm install
+
+# 3. Crear tablas en la base de datos
+npx prisma migrate dev
+
+# 4. Cargar datos de prueba
+npx prisma db seed
+
+# 5. Iniciar el servidor
+pnpm start:dev
+
+# 6. Abrir Apollo Playground
+# http://localhost:4000/api-v1/graphql
+```
+
+**Secciones importantes del README:**
+- [Variables de entorno](#variables-de-entorno)
+- [Instalación y ejecución](#instalación-y-ejecución)
+- [Docker](#docker)
+- [Tests](#tests) - 62 tests unitarios
+- [CI/CD](#cicd) - GitHub Actions configurado
+
+---
+
+### 4️⃣ Componentes React → Ver Frontend
+
+**El frontend está en un repositorio separado:** `quotation-config-assessment-frontend`
+
+Ver: [Frontend README](../laik-tech-frontend/README.md) para la ubicación de los componentes React.
+
+---
+
 ## 📋 Tabla de contenidos
 
+- [Ubicación de Entregables](#-ubicación-de-entregables)
 - [Descripción general](#descripción-general)
 - [Stack tecnológico](#stack-tecnológico)
 - [Arquitectura del proyecto](#arquitectura-del-proyecto)
@@ -19,6 +118,7 @@ Sistema completo de **Configuración de Cotización** con backend GraphQL (NestJ
 - [Tests](#tests)
 - [CI/CD](#cicd)
 - [Estructura de carpetas](#estructura-de-carpetas)
+- [Git Workflow y Branching Strategy](#git-workflow-y-branching-strategy)
 - [Características destacadas](#características-destacadas)
 
 ---
