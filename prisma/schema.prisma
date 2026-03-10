@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Plant {
+  id        Int            @id @default(autoincrement())
+  name      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  margins   MarginConfig[]
+}
+
+model ClientType {
+  id              Int            @id @default(autoincrement())
+  name            String         @unique
+  basePrice       Float
+  pricingStrategy String         @default("POR_ESTRUCTURA")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  clients         Client[]
+  margins         MarginConfig[]
+}
+
+model Client {
+  id              Int            @id @default(autoincrement())
+  name            String
+  clientType      ClientType     @relation(fields: [clientTypeId], references: [id], onDelete: Cascade)
+  clientTypeId    Int
+  basePrice       Float?
+  pricingStrategy String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  margins         MarginConfig[]
+}
+
+model MarginConfig {
+  id           Int         @id @default(autoincrement())
+  plant        Plant       @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  plantId      Int
+  clientType   ClientType? @relation(fields: [clientTypeId], references: [id], onDelete: Cascade)
+  clientTypeId Int?
+  client       Client?     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId     Int?
+  volumeRange  VolumeRange
+  margin       Float
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([plantId, clientTypeId, clientId, volumeRange])
+}
+
+enum VolumeRange {
+  KG_300
+  KG_500
+  T_1
+  T_3
+  T_5
+  T_10
+  T_20
+  T_30
+}
