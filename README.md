@@ -726,6 +726,478 @@ laik-tech/
 
 ---
 
+## Git Workflow y Branching Strategy
+
+### Convención de Branching
+
+Este proyecto sigue **Git Flow** simplificado con las siguientes convenciones:
+
+#### Branches principales:
+
+- **`main`** — Código en producción (solo merges desde `staging` después de QA)
+- **`staging`** — Pre-producción para QA y testing final
+- **`develop`** — Integración continua de features (branch de desarrollo activo)
+
+#### Estrategia de promoción:
+
+```
+┌─────────────┐
+│   develop   │  ← PRs desde feature/* (desarrollo activo)
+└──────┬──────┘
+       │ merge (cuando se completa sprint/milestone)
+       ↓
+┌─────────────┐
+│   staging   │  ← Testing y QA
+└──────┬──────┘
+       │ merge (solo después de QA OK)
+       ↓
+┌─────────────┐
+│    main     │  ← Producción (código estable)
+└─────────────┘
+```
+
+**Reglas importantes:**
+
+- ✅ Features se crean desde `develop`: `git checkout -b feature/xxx develop`
+- ✅ PRs de features van hacia `develop`, **nunca directo a main o staging**
+- ✅ `develop` → `staging`: Merge cuando se completa un sprint o milestone
+- ✅ `staging` → `main`: Merge **solo después** de QA aprobado
+- ❌ NUNCA hacer merge directo de feature → main
+- ❌ NUNCA hacer commits directos en `main`, `staging` o `develop`
+- ❌ NUNCA hacer `git push --force` en branches principales
+
+#### Branches de trabajo:
+
+```
+feature/<nombre-descriptivo>    # Nuevas funcionalidades
+fix/<nombre-del-bug>            # Corrección de bugs
+refactor/<area>                 # Refactorización sin cambios funcionales
+chore/<tarea>                   # Mantenimiento (deps, config, etc.)
+```
+
+#### Ejemplos reales de este proyecto:
+
+```bash
+feature/margins-config          # Módulo de configuración de márgenes
+feature/client-management       # CRUD de clientes
+feature/plant-selector          # Selector de plantas en UI
+fix/nullable-client-type        # Soporte para clientes sin tipo
+refactor/repository-pattern     # Implementación del Repository Pattern
+chore/ci-cd-setup              # Configuración de GitHub Actions
+```
+
+---
+
+### Mantener Branch Actualizado con Develop
+
+#### Estrategia recomendada: **Rebase con develop**
+
+Las features se desarrollan desde `develop` y se mantienen actualizadas con él:
+
+```bash
+# 1. Estando en tu feature branch
+git checkout feature/margins-config
+
+# 2. Traer últimos cambios de develop (no main)
+git fetch origin develop
+
+# 3. Rebase interactivo (permite limpiar commits)
+git rebase origin/develop
+
+# 4. Si hay conflictos, resolverlos y continuar
+git add .
+git rebase --continue
+
+# 5. Forzar push (solo en branches personales, NUNCA en main/staging/develop)
+git push --force-with-lease origin feature/margins-config
+```
+
+#### Cuándo usar **Merge** en lugar de Rebase:
+
+```bash
+# Si la feature ya fue compartida con otros desarrolladores
+git checkout feature/margins-config
+git merge origin/develop
+
+# Resolver conflictos si los hay
+git add .
+git commit -m "Merge develop into feature/margins-config"
+git push origin feature/margins-config
+```
+
+#### Workflow completo con develop → staging → main:
+
+```bash
+# ──────────────────────────────────────────────────────────
+# Día 1: Crear feature branch desde develop
+# ──────────────────────────────────────────────────────────
+git checkout develop
+git pull origin develop
+git checkout -b feature/margins-config
+
+# ... trabajar, commits ...
+git add .
+git commit -m "feat: add MarginConfig entity and repository"
+git push origin feature/margins-config
+
+# ──────────────────────────────────────────────────────────
+# Día 2: Actualizar con cambios de develop
+# ──────────────────────────────────────────────────────────
+git fetch origin develop
+git rebase origin/develop
+# Resolver conflictos si los hay
+git push --force-with-lease origin feature/margins-config
+
+# ──────────────────────────────────────────────────────────
+# Día 3: Feature completa - PR hacia develop
+# ──────────────────────────────────────────────────────────
+git fetch origin develop
+git rebase origin/develop
+git push --force-with-lease origin feature/margins-config
+# Crear Pull Request: feature/margins-config → develop
+
+# ──────────────────────────────────────────────────────────
+# Después del merge a develop: Deploy a staging
+# ──────────────────────────────────────────────────────────
+git checkout staging
+git pull origin staging
+git merge develop  # Merge develop → staging
+git push origin staging
+# CI/CD despliega automáticamente a entorno de staging
+
+# ──────────────────────────────────────────────────────────
+# Después de QA en staging: Deploy a producción
+# ──────────────────────────────────────────────────────────
+git checkout main
+git pull origin main
+git merge staging  # Merge staging → main (solo después de QA)
+git tag -a v1.2.0 -m "Release v1.2.0: Margin configuration module"
+git push origin main --tags
+# CI/CD despliega automáticamente a producción
+```
+
+#### Flujo de promoción entre environments:
+
+```
+feature/* ──PR──> develop ──merge──> staging ──QA OK──> main
+    ↑                                    ↑               ↑
+  (rebase)                           (testing)     (production)
+```
+git commit -m "feat: add MarginConfig entity and repository"
+
+# Día 2: Actualizar con cambios de main
+git fetch origin main
+git rebase origin/main
+# Resolver conflictos si los hay
+git push --force-with-lease origin feature/margins-config
+
+# Día 3: Más trabajo
+git add .
+git commit -m "feat: add GraphQL resolvers for margins"
+git push origin feature/margins-config
+
+# Día 4: PR ready - último sync
+git fetch origin main
+git rebase origin/main
+git push --force-with-lease origin feature/margins-config
+# Crear Pull Request en GitHub
+```
+
+---
+
+### Manejo de Conflictos en `schema.graphql`
+
+#### Escenario:
+
+Dos desarrolladores editando el mismo archivo `schema.graphql` (o en el caso de Code First, archivos `.entity.ts` o `.resolver.ts`):
+
+- **Developer A** (tú): Agregando `MarginConfig` type
+- **Developer B**: Agregando `Invoice` type
+
+#### Pasos para resolver el conflicto:
+
+**1. Detectar el conflicto durante rebase/merge:**
+
+```bash
+git rebase origin/main
+
+# Output:
+# Auto-merging src/modules/margin-configs/entities/margin-config.entity.ts
+# CONFLICT (content): Merge conflict in schema.graphql
+# error: could not apply abc1234... feat: add MarginConfig type
+```
+
+**2. Abrir el archivo con conflictos:**
+
+```graphql
+<<<<<<< HEAD (main - Developer B)
+type Invoice {
+  id: ID!
+  number: String!
+  total: Float!
+  client: Client!
+}
+
+type Query {
+  invoices: [Invoice!]!
+  invoice(id: ID!): Invoice
+=======
+type MarginConfig {
+  id: ID!
+  plantId: ID!
+  volumeRange: VolumeRange!
+  margin: Float!
+}
+
+type Query {
+  marginsByPlant(plantId: ID!): [MarginConfig!]!
+>>>>>>> abc1234 (feature/margins-config - Developer A)
+}
+```
+
+**3. Resolver el conflicto manualmente:**
+
+Estrategias según el caso:
+
+**Opción A: Ambos cambios son independientes (más común)**
+
+```graphql
+# Combinar ambos tipos y queries
+type Invoice {
+  id: ID!
+  number: String!
+  total: Float!
+  client: Client!
+}
+
+type MarginConfig {
+  id: ID!
+  plantId: ID!
+  volumeRange: VolumeRange!
+  margin: Float!
+}
+
+type Query {
+  # Queries de Developer B
+  invoices: [Invoice!]!
+  invoice(id: ID!): Invoice
+  
+  # Queries de Developer A (tuyas)
+  marginsByPlant(plantId: ID!): [MarginConfig!]!
+}
+```
+
+**Opción B: Cambios en la misma entidad (requiere coordinación)**
+
+```graphql
+# Antes (main):
+type Client {
+  id: ID!
+  name: String!
+}
+
+# Developer A agregó:
+type Client {
+  id: ID!
+  name: String!
+  clientTypeId: ID!  # ← Tu cambio
+}
+
+# Developer B agregó:
+type Client {
+  id: ID!
+  name: String!
+  email: String!     # ← Cambio de otro dev
+}
+
+# Resolución: Combinar ambos campos
+type Client {
+  id: ID!
+  name: String!
+  clientTypeId: ID!  # ← Tu cambio
+  email: String!     # ← Cambio de otro dev
+}
+```
+
+**4. Marcar conflicto como resuelto:**
+
+```bash
+# Eliminar marcadores de conflicto (<<<<, ====, >>>>)
+# Verificar que el código compila
+pnpm build
+
+# Agregar archivo resuelto
+git add src/modules/margin-configs/entities/margin-config.entity.ts
+
+# Continuar rebase
+git rebase --continue
+
+# O si era merge:
+git commit -m "Merge main into feature/margins-config - resolve schema conflicts"
+```
+
+**5. Ejecutar tests y verificar:**
+
+```bash
+# Regenerar schema GraphQL si es Code First
+pnpm build
+
+# Ejecutar tests
+pnpm test
+
+# Si todo pasa, push
+git push --force-with-lease origin feature/margins-config
+```
+
+---
+
+### Prevención de Conflictos
+
+#### 1. **Comunicación en equipo:**
+
+```bash
+# Antes de trabajar en un módulo compartido, avisar:
+# "Voy a trabajar en el módulo de clients, tocaré client.entity.ts"
+
+# Si alguien ya está trabajando ahí:
+# - Coordinar para no editar los mismos campos
+# - O trabajar en branches de corta duración
+# - O usar pair programming para ese archivo
+```
+
+#### 2. **Modularidad (Code First):**
+
+Este proyecto usa **GraphQL Code First** con NestJS, lo que reduce conflictos:
+
+```typescript
+// ✅ Cada módulo tiene su propio archivo de entidades
+src/modules/margin-configs/entities/margin-config.entity.ts
+src/modules/clients/entities/client.entity.ts
+src/modules/invoices/entities/invoice.entity.ts  // ← Developer B
+
+// ✅ Menos conflictos porque cada dev edita archivos diferentes
+```
+
+#### 3. **Pull Requests pequeños:**
+
+```bash
+# ✅ Bueno: Feature pequeña, fácil de revisar
+feature/add-margin-config (5 archivos, 200 líneas)
+
+# ❌ Malo: Feature gigante, tarda días, muchos conflictos
+feature/complete-quotation-module (50 archivos, 3000 líneas)
+```
+
+#### 4. **Syncs frecuentes:**
+
+```bash
+# ✅ Rebase diario (al menos)
+git fetch origin main && git rebase origin/main
+
+# En lugar de:
+# ❌ Trabajar 1 semana sin sync → conflictos masivos
+```
+
+---
+
+### Ejemplo Real: Conflicto en Este Proyecto
+
+**Escenario simulado:**
+
+**Developer A (tú):** Hiciste `clientTypeId` nullable en `Client` entity
+
+```typescript
+// Tu cambio en: src/modules/clients/entities/client.entity.ts
+@Field(() => Int, { nullable: true })  // ← Agregaste nullable
+clientTypeId: number | null
+```
+
+**Developer B:** Agregó campo `email` en `Client` entity
+
+```typescript
+// Cambio de otro dev en el mismo archivo
+@Field(() => String, { nullable: true })
+email: string | null  // ← Otro dev agregó email
+```
+
+**Conflicto al hacer rebase:**
+
+```typescript
+<<<<<<< HEAD (main - Developer B)
+@Field(() => Int)
+clientTypeId: number
+
+@Field(() => String, { nullable: true })
+email: string | null
+=======
+@Field(() => Int, { nullable: true })
+clientTypeId: number | null
+>>>>>>> feature/nullable-client-type
+```
+
+**Resolución:**
+
+```typescript
+// Combinar ambos cambios
+@Field(() => Int, { nullable: true })  // ← Tu cambio
+clientTypeId: number | null
+
+@Field(() => String, { nullable: true })  // ← Cambio de otro dev
+email: string | null
+```
+
+```bash
+git add src/modules/clients/entities/client.entity.ts
+git rebase --continue
+pnpm test  # Verificar que todo funciona
+git push --force-with-lease origin feature/nullable-client-type
+```
+
+---
+
+### Herramientas Útiles
+
+#### VS Code para conflictos:
+
+```bash
+# VS Code detecta conflictos y muestra botones:
+# - "Accept Current Change" (tu cambio)
+# - "Accept Incoming Change" (cambio de main)
+# - "Accept Both Changes" (combinar ambos)
+# - "Compare Changes" (ver diff lado a lado)
+```
+
+#### Git commands útiles:
+
+```bash
+# Ver qué archivos tienen conflictos
+git status
+
+# Abortar rebase si algo sale mal
+git rebase --abort
+
+# Ver historial de un archivo
+git log --oneline -- src/modules/clients/entities/client.entity.ts
+
+# Ver quién editó cada línea (para coordinar)
+git blame src/modules/clients/entities/client.entity.ts
+```
+
+---
+
+### Resumen de Best Practices
+
+✅ **Branches descriptivos:** `feature/margins-config` en lugar de `feature/new-stuff`  
+✅ **Commits atómicos:** Un cambio lógico por commit  
+✅ **Sync frecuente:** Rebase diario con `main`  
+✅ **Comunicación:** Avisar cuando editas archivos compartidos  
+✅ **PRs pequeños:** Features de 1-3 días, no semanas  
+✅ **Tests antes de push:** Siempre ejecutar `pnpm test` después de resolver conflictos  
+✅ **Force push seguro:** Usar `--force-with-lease` en lugar de `--force`  
+✅ **Code review:** Pedir al menos 1 aprobación antes de merge a `main`
+
+---
+
 ## Licencia
 
 MIT
