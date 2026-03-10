@@ -14,7 +14,7 @@ services:
       GRAPHQL_DEBUG: 'true'
     volumes:
       - ./src:/app/src
-    command: pnpm start:dev
+    command: sh -c "npx prisma migrate deploy && pnpm start:dev"
     depends_on:
       db:
         condition: service_healthy
